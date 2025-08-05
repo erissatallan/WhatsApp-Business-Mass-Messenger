@@ -67,18 +67,26 @@ const RepliesTab = () => {
 
   const getSentimentEmoji = (sentiment) => {
     switch (sentiment) {
-      case 'positive': return '😊';
-      case 'negative': return '😞';
+      case 'interested': return '😊';
+      case 'positive_feedback': return '🌟';
+      case 'complaint': return '😞';
       case 'question': return '❓';
+      case 'desired_opt_out': return '🚫';
+      case 'urgent': return '🚨';
+      case 'neutral': return '😐';
       default: return '😐';
     }
   };
 
   const getSentimentColor = (sentiment) => {
     switch (sentiment) {
-      case 'positive': return 'text-green-600 bg-green-50';
-      case 'negative': return 'text-red-600 bg-red-50';
+      case 'interested': return 'text-green-600 bg-green-50';
+      case 'positive_feedback': return 'text-emerald-600 bg-emerald-50';
+      case 'complaint': return 'text-red-600 bg-red-50';
       case 'question': return 'text-blue-600 bg-blue-50';
+      case 'desired_opt_out': return 'text-red-800 bg-red-100 border border-red-200';
+      case 'urgent': return 'text-orange-600 bg-orange-50';
+      case 'neutral': return 'text-gray-600 bg-gray-50';
       default: return 'text-gray-600 bg-gray-50';
     }
   };
@@ -205,9 +213,12 @@ const RepliesTab = () => {
               className="w-full border border-gray-300 rounded-md px-3 py-2"
             >
               <option value="">All Sentiments</option>
-              <option value="positive">😊 Positive</option>
-              <option value="negative">😞 Negative</option>
+              <option value="interested">😊 Interested</option>
+              <option value="positive_feedback">🌟 Positive Feedback</option>
               <option value="question">❓ Questions</option>
+              <option value="complaint">😞 Complaints</option>
+              <option value="desired_opt_out">🚫 Opt-out Requests</option>
+              <option value="urgent">🚨 Urgent</option>
               <option value="neutral">😐 Neutral</option>
             </select>
           </div>
@@ -308,10 +319,10 @@ const RepliesTab = () => {
         ) : (
           <div className="divide-y divide-gray-200">
             {replies.map((reply) => (
-              <div key={reply.id} className="p-4 hover:bg-gray-50">
+              <div key={reply.id} className={`p-4 hover:bg-gray-50 ${reply.requires_attention ? 'border-l-4 border-orange-400 bg-orange-50' : ''}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
+                    <div className="flex items-center space-x-2 mb-2 flex-wrap">
                       <span className="font-medium text-gray-900">
                         {reply.sender_name || 'Unknown'}
                       </span>
@@ -323,9 +334,26 @@ const RepliesTab = () => {
                       >
                         {getSentimentEmoji(reply.sentiment)} {reply.sentiment}
                       </span>
+                      
+                      {reply.requires_attention && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-100">
+                          ⚠️ Needs Attention
+                        </span>
+                      )}
+                      
                       {reply.is_opt_out && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-red-600 bg-red-100">
                           🚫 Opt-out
+                        </span>
+                      )}
+                      
+                      {reply.confidence_score && (
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          reply.confidence_score > 0.8 ? 'text-green-600 bg-green-100' : 
+                          reply.confidence_score > 0.6 ? 'text-yellow-600 bg-yellow-100' : 
+                          'text-gray-600 bg-gray-100'
+                        }`}>
+                          🎯 {Math.round(reply.confidence_score * 100)}%
                         </span>
                       )}
                     </div>

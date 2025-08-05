@@ -304,7 +304,7 @@ def get_campaigns():
 # WhatsApp Reply Collection Routes
 @app.route('/webhook/whatsapp', methods=['POST'])
 def whatsapp_webhook():
-    """Handle incoming WhatsApp messages (replies to our campaigns)"""
+    """Handle incoming WhatsApp messages (replies to our campaigns) with full compliance"""
     try:
         # Import reply handling functions
         from reply_handler import store_reply, detect_reply_sentiment, is_opt_out_message, generate_auto_response
@@ -327,19 +327,30 @@ def whatsapp_webhook():
             media_type = request.values.get('MediaContentType0')
             print(f"📷 Media received: {media_type} - {media_url}")
         
-        # Store the reply
+        # Store the reply (this handles opt-out detection and database updates)
         reply_id = store_reply(clean_phone, message_body, media_url, media_type)
         
-        # Generate response
-        sentiment = detect_reply_sentiment(message_body)
-        opt_out = is_opt_out_message(message_body)
-        auto_response = generate_auto_response(message_body, sentiment, opt_out)
+        # Generate response using the enhanced format with compliance
+        sentiment_result = detect_reply_sentiment(message_body, clean_phone)
+        
+        # Enhanced opt-out detection
+        opt_out = (
+            is_opt_out_message(message_body) or 
+            sentiment_result.get('detailed_category') == 'DESIRED_OPT_OUT' or
+            sentiment_result.get('sentiment') == 'desired_opt_out'
+        )
+        
+        auto_response = generate_auto_response(message_body, sentiment_result, opt_out)
         
         # Create TwiML response
         response = MessagingResponse()
         response.message(auto_response)
         
         print(f"🤖 Auto-response sent: {auto_response}")
+        
+        # Log compliance actions
+        if opt_out:
+            print(f"🚫 OPT-OUT PROCESSED: {clean_phone} has been unsubscribed")
         
         return str(response)
         
@@ -419,8 +430,10 @@ def get_replies():
                 'media_url': row[8],
                 'media_type': row[9],
                 'sentiment': row[10],
-                'is_opt_out': bool(row[11]),
-                'campaign_name': row[13] if len(row) > 13 else 'Unknown'
+                'confidence_score': row[11] if len(row) > 11 else 0.8,
+                'is_opt_out': bool(row[12]) if len(row) > 12 else False,
+                'requires_attention': bool(row[13]) if len(row) > 13 else False,
+                'campaign_name': row[15] if len(row) > 15 else 'Unknown'
             })
         
         conn.close()
@@ -625,9 +638,150 @@ def download_replies():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Opt-out Management API Endpoints
+@app.route('/api/opt-out/analytics', methods=['GET'])
+def get_opt_out_analytics():
+    """Get opt-out analytics and compliance metrics"""
+    try:
+        from opt_out_manager import get_opt_out_analytics
+        analytics = get_opt_out_analytics()
+        return jsonify(analytics)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/opt-out/queue', methods=['GET'])
+def get_opt_out_queue():
+    """Get opt-out confirmation queue status"""
+    try:
+        from opt_out_manager import get_opt_out_queue_status
+        queue_status = get_opt_out_queue_status()
+        return jsonify({'queue': queue_status})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/opt-out/queue', methods=['POST'])
+def schedule_opt_out_confirmation():
+    """Schedule an opt-out confirmation message"""
+    try:
+        from opt_out_manager import schedule_opt_out_confirmation_message
+        
+        data = request.get_json()
+        phone_number = data.get('phone_number')
+        sender_name = data.get('sender_name', '')
+        schedule_type = data.get('schedule_type', 'now')
+        hours_delay = data.get('hours_delay', 0)
+        
+        if not phone_number:
+            return jsonify({'error': 'Phone number is required'}), 400
+        
+        success = schedule_opt_out_confirmation_message(
+            phone_number, sender_name, schedule_type, hours_delay
+        )
+        
+        if success:
+            return jsonify({'message': 'Opt-out confirmation scheduled successfully'})
+        else:
+            return jsonify({'error': 'Failed to schedule opt-out confirmation'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/opt-out/send-pending', methods=['POST'])
+def send_pending_opt_out_confirmations():
+    """Send all pending opt-out confirmations"""
+    try:
+        from opt_out_manager import get_pending_opt_out_confirmations, mark_opt_out_confirmation_sent
+        from celery_worker import send_whatsapp_message
+        
+        confirmations = get_pending_opt_out_confirmations()
+        sent_count = 0
+        errors = []
+        
+        for confirmation in confirmations:
+            try:
+                # Send the opt-out confirmation message
+                task_result = send_whatsapp_message.delay(
+                    confirmation['phone_number'],
+                    confirmation['message'],
+                    None  # No campaign_id for opt-out confirmations
+                )
+                
+                # Mark as sent
+                mark_opt_out_confirmation_sent(confirmation['id'])
+                sent_count += 1
+                
+                print(f"✅ Opt-out confirmation sent to {confirmation['phone_number']}")
+                
+            except Exception as e:
+                error_msg = f"Failed to send to {confirmation['phone_number']}: {str(e)}"
+                errors.append(error_msg)
+                print(f"❌ {error_msg}")
+        
+        response_data = {
+            'sent_count': sent_count,
+            'total_confirmations': len(confirmations)
+        }
+        
+        if errors:
+            response_data['errors'] = errors
+            
+        return jsonify(response_data)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/opt-out/check/<phone_number>', methods=['GET'])
+def check_opt_out_status(phone_number):
+    """Check if a phone number has opted out"""
+    try:
+        from opt_out_manager import is_phone_opted_out
+        opted_out = is_phone_opted_out(phone_number)
+        return jsonify({'phone_number': phone_number, 'opted_out': opted_out})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/campaigns/<campaign_id>/clean-opt-outs', methods=['POST'])
+def clean_opt_outs_from_campaign(campaign_id):
+    """Remove opted-out contacts from a specific campaign"""
+    try:
+        from opt_out_manager import remove_opted_out_contacts_from_campaign
+        removed_count = remove_opted_out_contacts_from_campaign(campaign_id)
+        
+        return jsonify({
+            'message': f'Removed {removed_count} opted-out contacts from campaign',
+            'removed_count': removed_count
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/templates/compliant', methods=['GET'])
+def get_compliant_templates():
+    """Get WhatsApp Business compliant message templates"""
+    try:
+        # Read the compliant templates file
+        templates_path = os.path.join(os.path.dirname(__file__), 'compliant_templates.md')
+        
+        if os.path.exists(templates_path):
+            with open(templates_path, 'r', encoding='utf-8') as f:
+                templates_content = f.read()
+            
+            return jsonify({
+                'templates': templates_content,
+                'compliance_note': 'All templates include mandatory opt-out mechanisms and business identification as required by WhatsApp Business Policy'
+            })
+        else:
+            return jsonify({'error': 'Templates file not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     init_db()
     # Initialize reply database
     from reply_handler import setup_replies_database
     setup_replies_database()
+    # Initialize opt-out management
+    from opt_out_manager import setup_opt_out_tables
+    setup_opt_out_tables()
     app.run(debug=True, port=5000)

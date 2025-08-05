@@ -1,67 +1,27 @@
 import pandas as pd
 import os
 
-# Create sample data with various formats to demonstrate flexibility
+# Create sample data with your specific contacts
 sample_data = [
     {
-        'phone': '+254712345678',
-        'name': 'Jane Doe',
-        'first_name': 'Jane',
-        'last_name': 'Doe', 
-        'company': 'Tech Solutions Ltd',
+        'phone': '0759469851',
+        'name': 'Allan Erissat',
+        'first_name': 'Allan',
+        'last_name': 'Erissat',
+        'company': 'N/A',
         'city': 'Nairobi',
-        'last_purchase': 'Silk Blouse',
-        'purchase_amount': '5000'
+        'last_purchase': 'Socks',
+        'purchase_amount': '1000'
     },
     {
-        'phone': '0722123456',  # Will be converted to +254722123456
-        'name': 'John Smith',
-        'first_name': 'John',
-        'last_name': 'Smith',
-        'company': 'Retail Plus',
-        'city': 'Mombasa', 
-        'last_purchase': 'Evening Dress',
-        'purchase_amount': '8500'
-    },
-    {
-        'phone': '+1234567890',  # International number
-        'name': 'Sarah Johnson',
-        'first_name': 'Sarah',
-        'last_name': 'Johnson',
-        'company': 'Fashion Forward Inc',
-        'city': 'New York',
-        'last_purchase': 'Designer Handbag',
-        'purchase_amount': '12000'
-    },
-    {
-        'phone': '254733567890',  # Full Kenya format without +
-        'name': 'Michael Brown',
-        'first_name': 'Michael', 
-        'last_name': 'Brown',
-        'company': 'Brown & Associates',
-        'city': 'Kisumu',
-        'last_purchase': 'Business Suit',
-        'purchase_amount': '15000'
-    },
-    {
-        'phone': '0799888777',
-        'name': 'Grace Wanjiku',
-        'first_name': 'Grace',
-        'last_name': 'Wanjiku',
-        'company': 'Wanjiku Enterprises',
-        'city': 'Nakuru',
-        'last_purchase': 'Traditional Wear',
-        'purchase_amount': '6500'
-    },
-    {
-        'phone': '+254701234567',
-        'name': 'David Mwangi',
-        'first_name': 'David',
-        'last_name': 'Mwangi', 
-        'company': 'Mwangi Holdings',
-        'city': 'Eldoret',
-        'last_purchase': 'Casual Wear Set',
-        'purchase_amount': '4200'
+        'phone': '0716369120',
+        'name': 'Mwihaki Last_Name',
+        'first_name': 'Mwihaki',
+        'last_name': 'Last_Name',
+        'company': 'M.I.',
+        'city': 'Nairobi',
+        'last_purchase': 'Socks',
+        'purchase_amount': '1200'
     }
 ]
 

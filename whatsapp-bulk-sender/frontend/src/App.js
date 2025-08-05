@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Send, Settings, BarChart3, CheckCircle, Clock, XCircle, AlertCircle, MessageSquare } from 'lucide-react';
+import { Upload, Send, Settings, BarChart3, CheckCircle, Clock, XCircle, AlertCircle, MessageSquare, Shield } from 'lucide-react';
 import RepliesTab from './RepliesTab';
+import ComplianceTab from './ComplianceTab';
 import './App.css';
 
 const WhatsAppBulkSender = () => {
@@ -137,6 +138,7 @@ const WhatsAppBulkSender = () => {
           <TabButton id="upload" label="Upload & Configure" icon={Upload} />
           <TabButton id="monitor" label="Monitor Campaigns" icon={BarChart3} />
           <TabButton id="replies" label="View Replies" icon={MessageSquare} />
+          <TabButton id="compliance" label="Compliance Center" icon={Shield} />
           <TabButton id="settings" label="Settings" icon={Settings} />
         </div>
 
@@ -224,17 +226,21 @@ const WhatsAppBulkSender = () => {
                   onChange={(e) => setMessageTemplate(e.target.value)}
                   rows={12}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="Hi {name}! 
+                  placeholder="Hi {name}! 👋
 
-We have a special offer just for you based on your previous purchase of {last_product}.
+Welcome to Mwihaki Intimates - your trusted partner for elegant, comfortable intimate wear designed with you in mind.
 
-Get 20% off your next order with code SAVE20.
+🌟 Exclusive offers for new customers
+📍 Visit our store for personalized fitting
+📞 Expert advice from our team
 
-Visit our store: https://yourstore.com
+We respect your privacy and will only send valuable updates.
 
-Reply STOP to unsubscribe."
+Reply STOP to opt out | Mwihaki Intimates"
                 />
                 <p className="text-sm text-gray-500 mt-2">
+                  ⚠️ COMPLIANCE REQUIRED: All messages must include "Reply STOP to opt out" and business identification.
+                  <br />
                   Use {'{name}'}, {'{last_product}'}, etc. for personalization
                 </p>
               </div>
@@ -316,6 +322,14 @@ Reply STOP to unsubscribe."
           <div className="bg-white rounded-xl shadow-lg p-8">
             <h2 className="text-2xl font-bold mb-6">WhatsApp Replies & Analytics</h2>
             <RepliesTab />
+          </div>
+        )}
+
+        {/* Compliance Tab */}
+        {activeTab === 'compliance' && (
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <h2 className="text-2xl font-bold mb-6">WhatsApp Business Compliance</h2>
+            <ComplianceTab />
           </div>
         )}
 
