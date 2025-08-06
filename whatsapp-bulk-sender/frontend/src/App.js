@@ -11,7 +11,41 @@ const WhatsAppBulkSender = () => {
   const [campaignName, setCampaignName] = useState('');
   const [rateLimit, setRateLimit] = useState(2); // seconds between messages
   const [campaigns, setCampaigns] = useState([]);
+  const [campaignSearchQuery, setCampaignSearchQuery] = useState('');
+  const [campaignCurrentPage, setCampaignCurrentPage] = useState(1);
   const [apiKey, setApiKey] = useState('');
+
+  // Paginate campaigns based on search query
+  const paginatedCampaigns = React.useMemo(() => {
+    let filtered = campaigns;
+    
+    if (campaignSearchQuery.trim()) {
+      filtered = campaigns.filter(campaign =>
+        campaign.name.toLowerCase().includes(campaignSearchQuery.toLowerCase())
+      );
+    }
+    
+    const startIndex = (campaignCurrentPage - 1) * 20;
+    const endIndex = startIndex + 20;
+    return filtered.slice(startIndex, endIndex);
+  }, [campaigns, campaignSearchQuery, campaignCurrentPage]);
+
+  const campaignTotalPages = React.useMemo(() => {
+    let filtered = campaigns;
+    
+    if (campaignSearchQuery.trim()) {
+      filtered = campaigns.filter(campaign =>
+        campaign.name.toLowerCase().includes(campaignSearchQuery.toLowerCase())
+      );
+    }
+    
+    return Math.ceil(filtered.length / 20);
+  }, [campaigns, campaignSearchQuery]);
+
+  // Reset campaign page when search changes
+  React.useEffect(() => {
+    setCampaignCurrentPage(1);
+  }, [campaignSearchQuery]);
 
   const handleFileUpload = (event) => {
     const uploadedFile = event.target.files[0];
@@ -28,9 +62,18 @@ const WhatsAppBulkSender = () => {
       return;
     }
 
+    // Automatically add compliance footer to every message
+    const complianceFooter = "\n\nReply STOP to opt out | Mwihaki Intimates";
+    let finalMessageTemplate = messageTemplate;
+    
+    // Check if the compliance footer is already present
+    if (!messageTemplate.toLowerCase().includes('reply stop to opt out')) {
+      finalMessageTemplate = messageTemplate + complianceFooter;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('message_template', messageTemplate);
+    formData.append('message_template', finalMessageTemplate);
     formData.append('campaign_name', campaignName);
     formData.append('rate_limit', rateLimit);
     formData.append('api_key', apiKey);
@@ -239,7 +282,7 @@ We respect your privacy and will only send valuable updates.
 Reply STOP to opt out | Mwihaki Intimates"
                 />
                 <p className="text-sm text-gray-500 mt-2">
-                  ⚠️ COMPLIANCE REQUIRED: All messages must include "Reply STOP to opt out" and business identification.
+                  ✅ AUTOMATIC COMPLIANCE: "Reply STOP to opt out | Mwihaki Intimates" will be automatically added to the end of your message if not already present.
                   <br />
                   Use {'{name}'}, {'{last_product}'}, etc. for personalization
                 </p>
@@ -264,11 +307,27 @@ Reply STOP to opt out | Mwihaki Intimates"
             {/* Campaign List */}
             <div className="bg-white rounded-xl shadow-lg p-8">
               <h2 className="text-2xl font-bold mb-6">Recent Campaigns</h2>
-              {campaigns.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No campaigns found. Create your first campaign!</p>
+              
+              {/* Search Bar for Campaigns */}
+              <div className="mb-6">
+                <input
+                  type="text"
+                  placeholder="Search campaigns by name..."
+                  value={campaignSearchQuery}
+                  onChange={(e) => setCampaignSearchQuery(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+              
+              {paginatedCampaigns.length === 0 ? (
+                campaignSearchQuery.trim() ? (
+                  <p className="text-gray-500 text-center py-8">No campaigns match your search.</p>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No campaigns found. Create your first campaign!</p>
+                )
               ) : (
                 <div className="space-y-4">
-                  {campaigns.map((campaign) => (
+                  {paginatedCampaigns.map((campaign) => (
                     <div key={campaign.id} className="border border-gray-200 rounded-lg p-6">
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-semibold">{campaign.name}</h3>
@@ -311,6 +370,31 @@ Reply STOP to opt out | Mwihaki Intimates"
                       </p>
                     </div>
                   ))}
+                </div>
+              )}
+              
+              {/* Campaign Pagination */}
+              {campaignTotalPages > 1 && (
+                <div className="mt-6 px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+                  <div className="text-sm text-gray-500">
+                    Page {campaignCurrentPage} of {campaignTotalPages}
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setCampaignCurrentPage(Math.max(1, campaignCurrentPage - 1))}
+                      disabled={campaignCurrentPage === 1}
+                      className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => setCampaignCurrentPage(Math.min(campaignTotalPages, campaignCurrentPage + 1))}
+                      disabled={campaignCurrentPage === campaignTotalPages}
+                      className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -9,7 +9,10 @@ A comprehensive system for sending bulk WhatsApp Business messages to thousands 
 - **Rate Limiting**: Intelligent rate limiting to avoid WhatsApp blocks
 - **Real-time Monitoring**: Track campaign progress with live updates
 - **Retry Logic**: Automatic retry for failed messages with exponential backoff
-- **Campaign Management**: Create, monitor, and manage multiple campaigns
+- **Campaign Management**: Create, monitor, and manage multiple campaigns with pagination (20 per page)
+- **Reply Collection**: Collect and analyze WhatsApp replies with advanced filtering and pagination
+- **AI-Powered Analysis**: Gemini AI sentiment analysis and intelligent auto-responses
+- **Search & Pagination**: Efficient browsing of large datasets with 20 items per page
 - **WhatsApp Compliance**: Built-in compliance features to respect WhatsApp's terms
 
 ## 🏗️ Architecture

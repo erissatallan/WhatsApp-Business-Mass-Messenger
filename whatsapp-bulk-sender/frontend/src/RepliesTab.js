@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const RepliesTab = () => {
   const [replies, setReplies] = useState([]);
@@ -8,18 +8,13 @@ const RepliesTab = () => {
   const [selectedSentiment, setSelectedSentiment] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [campaigns, setCampaigns] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [downloading, setDownloading] = useState(false);
 
-  useEffect(() => {
-    fetchCampaigns();
-    fetchReplies();
-    fetchAnalytics();
-  }, [selectedCampaign, selectedSentiment, startDate, endDate, currentPage]);
-
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = useCallback(async () => {
     try {
       const response = await fetch('/api/campaigns');
       const data = await response.json();
@@ -27,9 +22,9 @@ const RepliesTab = () => {
     } catch (error) {
       console.error('Error fetching campaigns:', error);
     }
-  };
+  }, []);
 
-  const fetchReplies = async () => {
+  const fetchReplies = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -41,6 +36,7 @@ const RepliesTab = () => {
       if (selectedSentiment) params.append('sentiment', selectedSentiment);
       if (startDate) params.append('start_date', startDate);
       if (endDate) params.append('end_date', endDate);
+      if (searchQuery) params.append('search', searchQuery);
 
       const response = await fetch(`/api/replies?${params}`);
       const data = await response.json();
@@ -52,9 +48,9 @@ const RepliesTab = () => {
       console.error('Error fetching replies:', error);
       setLoading(false);
     }
-  };
+  }, [selectedCampaign, selectedSentiment, startDate, endDate, currentPage, searchQuery]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       const params = selectedCampaign ? `?campaign_id=${selectedCampaign}` : '';
       const response = await fetch(`/api/replies/analytics${params}`);
@@ -63,7 +59,13 @@ const RepliesTab = () => {
     } catch (error) {
       console.error('Error fetching analytics:', error);
     }
-  };
+  }, [selectedCampaign]);
+
+  useEffect(() => {
+    fetchCampaigns();
+    fetchReplies();
+    fetchAnalytics();
+  }, [fetchCampaigns, fetchReplies, fetchAnalytics]);
 
   const getSentimentEmoji = (sentiment) => {
     switch (sentiment) {
@@ -149,6 +151,7 @@ const RepliesTab = () => {
     setSelectedSentiment('');
     setStartDate('');
     setEndDate('');
+    setSearchQuery('');
     setCurrentPage(1);
   };
 
@@ -253,6 +256,22 @@ const RepliesTab = () => {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Search
+            </label>
+            <input
+              type="text"
+              placeholder="Search by name, phone, message, or campaign..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+            />
+          </div>
+
           <div className="flex items-end">
             <button
               onClick={clearAllFilters}
@@ -341,7 +360,7 @@ const RepliesTab = () => {
                         </span>
                       )}
                       
-                      {reply.is_opt_out && (
+                      {(reply.is_opt_out === true || reply.is_opt_out === 1) && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-red-600 bg-red-100">
                           🚫 Opt-out
                         </span>

@@ -95,6 +95,66 @@ def find_related_campaign(phone_number):
         print(f"Error finding related campaign: {str(e)}")
         return None, None
 
+def generate_intelligent_response_gemini(message_content, sentiment_category, phone_number=None):
+    """
+    Generate intelligent auto-responses using Gemini AI based on message content and sentiment
+    """
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        prompt = f"""
+        You are a professional customer service representative for Mwihaki Intimates, a premium intimate wear and lingerie business in Kenya.
+        
+        Customer Message: "{message_content}"
+        Detected Category: {sentiment_category}
+        
+        Generate a helpful, professional, and culturally appropriate response in the same language the customer used. 
+        
+        Guidelines:
+        - Be warm, friendly, and professional
+        - Use appropriate language for intimate wear business (tasteful and respectful)
+        - If they asked about products, mention we have various sizes, colors, and styles
+        - For pricing questions, mention we have affordable options starting from KES 500
+        - For availability, mention we deliver countrywide
+        - Keep responses under 160 characters when possible
+        - Include a call to action (visit our shop, call us, etc.)
+        - Match the customer's language (English, Swahili, Dholuo, Gikuyu)
+        
+        Response Categories:
+        - INTERESTED: Welcome them warmly, offer to help with selection
+        - QUESTION: IMPORTANT - Acknowledge it's a question and say we'll respond with details soon. Examples:
+          * "Thank you for your question! Our team will respond with details within 2 hours."
+          * "Great question! We'll get back to you shortly with all the information."
+          * "Asante kwa swali! Tutajibu kwa undani hivi karibuni." (Swahili)
+        - POSITIVE_FEEDBACK: Thank them warmly, invite them to recommend to friends
+        - COMPLAINT: Apologize sincerely, offer to resolve the issue
+        - NEUTRAL: Engage politely, offer assistance
+        
+        Business Info:
+        - Location: Nairobi, Kenya
+        - Products: Bras, panties, lingerie sets, nightwear, shapewear
+        - Contact: Available via WhatsApp for orders
+        - Delivery: Countrywide delivery available
+        
+        Generate ONLY the response message, no additional text or formatting.
+        """
+        
+        response = model.generate_content(prompt)
+        return response.text.strip()
+        
+    except Exception as e:
+        print(f"Error generating intelligent response: {str(e)}")
+        # Fallback to simple responses
+        fallback_responses = {
+            'interested': "Thank you for your interest! We have beautiful intimate wear in various sizes. How can we help you today?",
+            'question': "Thank you for reaching out! We'd be happy to help with any questions about our products. Please let us know what you need.",
+            'positive_feedback': "Thank you so much for your kind words! We're delighted you're happy with our products. 🙏",
+            'complaint': "We sincerely apologize for any inconvenience. Please let us know how we can make this right for you.",
+            'neutral': "Hello! Thank you for contacting Mwihaki Intimates. How can we assist you today?",
+            'urgent': "Thank you for contacting us. A team member will get back to you shortly to address your concern."
+        }
+        return fallback_responses.get(sentiment_category, "Thank you for contacting Mwihaki Intimates! How can we help you?")
+
 def detect_reply_sentiment_gemini(message_content, phone_number=None, retry_count=0):
     """
     Advanced sentiment detection using Gemini AI with enhanced opt-out detection
@@ -124,7 +184,14 @@ def detect_reply_sentiment_gemini(message_content, phone_number=None, retry_coun
         
         1. **INTERESTED** - Shows clear interest in products/services, wants to buy, asks for more info, positive engagement
         2. **COMPLAINT** - Has an issue, complaint, dissatisfaction, problem with product/service (needs immediate attention)
-        3. **QUESTION** - Asking about prices, availability, details, how-to, when, where (needs informative response)
+        3. **QUESTION** - Asking for information, clarification, or details. Look for these patterns:
+            - Direct questions with/without question marks: "How much", "What size", "Do you have", "Can I get"
+            - Implicit questions: "I need to know", "Tell me about", "Looking for", "Want to see"
+            - Languages without question marks:
+              * Dholuo: "Anyalo yudo..." (Can I get...), "Nitie..." (Is there...), "Ango..." (How much...)
+              * Gikuyu: "Nĩngĩheo..." (Can I get...), "Nĩ kũrĩ..." (Is there...), "Nĩ ngathe..." (How much...)
+              * Swahili: "Naweza kupata..." (Can I get...), "Kuna..." (Is there...), "Bei gani..." (What price...)
+            - Seeking information about: prices, sizes, availability, colors, delivery, payment methods
         4. **DESIRED_OPT_OUT** - CRITICAL: Customer wants to stop receiving messages. Be EXTREMELY sensitive to ANY indication of wanting to stop messages, including:
             - Direct: "stop", "unsubscribe", "remove me", "delete my number", "don't message me", "not interested"
             - Swahili: "hatutaki", "sitaki", "acha", "wacha", "hapana"
@@ -135,12 +202,15 @@ def detect_reply_sentiment_gemini(message_content, phone_number=None, retry_coun
         6. **NEUTRAL** - Simple acknowledgment, unclear intent, general response
         7. **URGENT** - Emergency, very angry, threatening, serious complaint (needs immediate human attention)
         
-        IMPORTANT: If there's ANY doubt about opt-out intention, classify as DESIRED_OPT_OUT. Better to respect customer wishes than continue messaging.
+        IMPORTANT: 
+        - If there's ANY doubt about opt-out intention, classify as DESIRED_OPT_OUT
+        - Questions don't always have question marks - look for information-seeking intent
+        - Consider cultural communication patterns where statements can be implicit questions
         
         Consider:
-        - Multiple languages (English, Swahili, etc.)
+        - Multiple languages (English, Swahili, Dholuo, Gikuyu, etc.)
         - Emojis and their meanings
-        - Cultural context
+        - Cultural context and communication styles
         - Business implications
         
         Respond with ONLY a JSON object:
@@ -532,7 +602,7 @@ def mark_phone_as_opted_out(phone_number):
 
 def generate_auto_response(message_content, sentiment_result, is_opt_out):
     """
-    Generate automatic response based on reply content and Gemini analysis.
+    Generate automatic response using Gemini AI for intelligent, contextual replies.
     All responses are fully compliant with WhatsApp Business requirements.
     """
     
@@ -543,7 +613,22 @@ def generate_auto_response(message_content, sentiment_result, is_opt_out):
     if is_opt_out or detailed_category == 'DESIRED_OPT_OUT' or sentiment == 'desired_opt_out':
         return "Thank you for your message. You have been unsubscribed and will not receive further marketing messages from Mwihaki Intimates. We respect your decision. Have a wonderful day! 🙏\n\nMwihaki Intimates"
     
-    # Business-focused responses with mandatory compliance elements
+    # Use Gemini AI to generate intelligent, contextual responses
+    try:
+        intelligent_response = generate_intelligent_response_gemini(message_content, sentiment)
+        
+        # Ensure compliance footer is added if not already present
+        if "Reply STOP to opt out" not in intelligent_response and "Mwihaki Intimates" not in intelligent_response:
+            intelligent_response += "\n\nReply STOP to opt out | Mwihaki Intimates"
+        
+        print(f"🤖 Generated intelligent response: {intelligent_response[:100]}...")
+        return intelligent_response
+        
+    except Exception as e:
+        print(f"⚠️ Gemini response generation failed, using fallback: {str(e)}")
+        # Fallback to previous business-focused responses
+        
+    # Business-focused fallback responses with mandatory compliance elements
     if detailed_category == 'INTERESTED' or sentiment == 'interested':
         return "Thank you for your interest in Mwihaki Intimates! 😊 We're excited to help you discover intimate wear that combines comfort, style & confidence. Our team will contact you with personalized recommendations.\n\nReply STOP to opt out | Mwihaki Intimates"
     
@@ -630,6 +715,7 @@ def get_replies():
         per_page = int(request.args.get('per_page', 50))
         campaign_id = request.args.get('campaign_id')
         sentiment = request.args.get('sentiment')
+        search = request.args.get('search')
         
         offset = (page - 1) * per_page
         
@@ -641,17 +727,27 @@ def get_replies():
         params = []
         
         if campaign_id:
-            where_conditions.append("campaign_id = ?")
+            where_conditions.append("r.campaign_id = ?")
             params.append(campaign_id)
         
         if sentiment:
-            where_conditions.append("sentiment = ?")
+            where_conditions.append("r.sentiment = ?")
             params.append(sentiment)
+        
+        if search:
+            where_conditions.append("(r.sender_name LIKE ? OR r.phone_number LIKE ? OR r.message_content LIKE ? OR c.name LIKE ?)")
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param, search_param, search_param])
         
         where_clause = "WHERE " + " AND ".join(where_conditions) if where_conditions else ""
         
         # Get total count
-        count_query = f"SELECT COUNT(*) FROM replies {where_clause}"
+        count_query = f"""
+            SELECT COUNT(*) 
+            FROM replies r
+            LEFT JOIN campaigns c ON r.campaign_id = c.id
+            {where_clause}
+        """
         cursor.execute(count_query, params)
         total_count = cursor.fetchone()[0]
         
@@ -681,8 +777,10 @@ def get_replies():
                 'media_url': row[8],
                 'media_type': row[9],
                 'sentiment': row[10],
-                'is_opt_out': bool(row[11]),
-                'campaign_name': row[13] if len(row) > 13 else 'Unknown'
+                'confidence_score': row[11] if row[11] is not None else 0.0,
+                'is_opt_out': bool(row[12]) if row[12] not in [None, 0, '0', False] else False,
+                'requires_attention': bool(row[13]) if row[13] not in [None, 0, '0', False] else False,
+                'campaign_name': row[15] if len(row) > 15 else 'Unknown'
             })
         
         conn.close()
