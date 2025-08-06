@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Upload, Send, Settings, BarChart3, CheckCircle, Clock, XCircle, AlertCircle, MessageSquare, Shield } from 'lucide-react';
 import RepliesTab from './RepliesTab';
 import ComplianceTab from './ComplianceTab';
+import Footer from './Footer';
 import './App.css';
 
 const WhatsAppBulkSender = () => {
@@ -477,6 +478,9 @@ Reply STOP to opt out | Mwihaki Intimates"
           </div>
         )}
       </div>
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };

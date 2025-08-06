@@ -14,6 +14,7 @@ A comprehensive system for sending bulk WhatsApp Business messages to thousands 
 - **AI-Powered Analysis**: Gemini AI sentiment analysis and intelligent auto-responses
 - **Search & Pagination**: Efficient browsing of large datasets with 20 items per page
 - **WhatsApp Compliance**: Built-in compliance features to respect WhatsApp's terms
+- **Developer Attribution**: Professional footer with developer contact information
 
 ## 🏗️ Architecture
 
