@@ -1,0 +1,51 @@
+	Meta
+App ID
+2583856461950496
+
+App Secret
+2c151b63a04e696529c857df845a0f7e
+
+Access Token
+EAAkuAPaQriABPAVcBdiqZCrWNhT5jyq1bdO6kb8t1RYrJI1yVtOVC0sPlHOqTUKZB7203hYvexIB1RhG9xJOW7gk11RKHV3QjCFF8p6kg9Kw7uZAIoxlj0b93dhiskZC28Cr1DANlZAUJXjyd2IySO4oRV5ELpjl6CfgFPVFsP30veMU8xMvNDtIWOkE4ln2VwHtYjHjAYT4uJ3kRPycyTXb5KufOfZBTowFajefj2UAZDZD
+
+
+	Commands
+(venv) C:\Users\USER PC\Work\Business Automations\Mwihaki Intimates\whatsapp-bulk-sender\backend>celery -A celery_worker.celery_app worker --loglevel=info --pool=solo
+
+
+	Ngrok webhook (for Twilio)
+https://7211e7dddd8a.ngrok-free.app/webhook/whatsapp
+
+
+	Ngrok commands
+C:\Users\USER PC\Downloads\ngrok-v3-stable-windows-amd64>.\ngrok config add-authtoken 30mOHoaPVJQ2d8JYaUexbU8GJQA_nxb89iH8MLZSwPRNNAm9
+ngrok http 5000
+
+
+	START APP
+docker run -d -p 6380:6380 redis:7-alpine redis-server --port 6380  OR  redis-server.exe --port 6380
+
+cd .\whatsapp-bulk-sender\backend.\venv\Scripts\Activate.ps1
+python app.py
+
+cd .\whatsapp-bulk-sender\backend.\venv\Scripts\Activate.ps1
+celery -A celery_worker.celery_app worker --loglevel=info --pool=solo
+
+cd .\whatsapp-bulk-sender\frontend
+npm start
+
+Frontend: http://localhost:3000
+Backend API: http://localhost:5000
+Redis: localhost:6380
+
+============================================================================================================================================================================================================================================================================================================================
+
+To summarize our chat today, you contacted us about an issue verifying your business account while creating a Meta for Developers account, specifically being asked to add a required phone number despite already having done so, and we've investigated the matter further, including a phone call and a screen sharing session, and I've directed you to the next steps to resolve the issue. I have guided you to add the phone number to your Facebook profile, and that resolved the issue. 
+
+This case will now be closed. If you still have questions, you can contact us again at https://www.facebook.com/business/help
+
+I would also like to invite you to check our BluePrint platform, which offers free online courses that can help you expand your digital marketing knowledge and improve your online business: https://www.facebook.com/business/learn
+
+Thank you for contacting the Meta Pro Team.
+
+CASE ID: 4106834186250399
